@@ -80,6 +80,68 @@ def validate_network_policy(policy: Dict[str, Any]) -> None:
             raise SystemExit(f"network_policy.{key} must be {typ.__name__}")
 
 
+def extract_exec_prompt_metadata(text: str) -> Dict[str, Any]:
+    marker = "```json"
+    start = text.find(marker)
+    if start == -1:
+        raise SystemExit("exec_prompt missing json metadata block")
+    start = text.find("\n", start)
+    if start == -1:
+        raise SystemExit("exec_prompt json block malformed")
+    end = text.find("```", start)
+    if end == -1:
+        raise SystemExit("exec_prompt json block not terminated")
+    payload = text[start:end].strip()
+    try:
+        return json.loads(payload)
+    except Exception as exc:
+        raise SystemExit(f"exec_prompt json parse failed: {exc}")
+
+
+def validate_exec_prompt_metadata(meta: Dict[str, Any]) -> None:
+    required = ["schema_version", "contract_path", "worktree_root", "tasks", "acceptance_checks", "evidence"]
+    missing = [k for k in required if k not in meta]
+    if missing:
+        raise SystemExit(f"exec_prompt missing required keys: {missing}")
+    extras = [k for k in meta.keys() if k not in required + ["notes"]]
+    if extras:
+        raise SystemExit(f"exec_prompt unexpected keys: {sorted(extras)}")
+    for key in ("schema_version", "contract_path", "worktree_root"):
+        if not isinstance(meta.get(key), str):
+            raise SystemExit(f"exec_prompt.{key} must be string")
+    for key in ("tasks", "acceptance_checks", "evidence"):
+        value = meta.get(key)
+        if not isinstance(value, list) or not value:
+            raise SystemExit(f"exec_prompt.{key} must be non-empty array")
+        if any(not isinstance(item, str) for item in value):
+            raise SystemExit(f"exec_prompt.{key} must contain only strings")
+    if "notes" in meta and not isinstance(meta.get("notes"), str):
+        raise SystemExit("exec_prompt.notes must be string")
+
+
+def resolve_exec_prompt_path(contract_path: pathlib.Path) -> pathlib.Path:
+    primary = contract_path.parent / "EXEC_PROMPT.md"
+    if primary.exists():
+        return primary
+    if contract_path.name != "contract.json":
+        legacy = contract_path.with_name(f"{contract_path.stem}.EXEC_PROMPT.md")
+        if legacy.exists():
+            return legacy
+    return primary
+
+
+def validate_exec_prompt(contract_path: pathlib.Path) -> None:
+    prompt_path = resolve_exec_prompt_path(contract_path)
+    if not prompt_path.exists():
+        raise SystemExit(f"exec_prompt missing: {prompt_path}")
+    try:
+        text = prompt_path.read_text(encoding="utf-8")
+    except Exception as exc:
+        raise SystemExit(f"exec_prompt unreadable: {exc}")
+    meta = extract_exec_prompt_metadata(text)
+    validate_exec_prompt_metadata(meta)
+
+
 def git_porcelain(cwd: str | None = None) -> List[str]:
     rc, out, err = sh(["git", "status", "--porcelain"], cwd=cwd)
     if rc != 0:
@@ -302,6 +364,7 @@ def main(argv: List[str]) -> int:
     args = parse_args(argv)
     contract_path = args.contract_path
     contract = load_json(contract_path)
+    validate_exec_prompt(pathlib.Path(contract_path))
 
     packet_id = require(contract, "packet_id", str)
     base_ref = require(contract, "base_ref", str)
