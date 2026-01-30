@@ -28,7 +28,7 @@ def plant_root() -> pathlib.Path:
 def template_path(default_root: pathlib.Path, override: str | None) -> pathlib.Path:
     if override:
         return pathlib.Path(override)
-    return default_root / "packet" / "packet_contract.template.json"
+    return default_root / "packets" / "packet_contract.template.json"
 
 
 def load_template(path: pathlib.Path) -> Dict[str, Any]:
@@ -99,7 +99,7 @@ def main(argv: list[str]) -> int:
     template = load_template(template_path(root, args.template))
     contract = build_contract(template, mapping)
 
-    out_path = root / "packet" / "examples" / f"{packet_id}.json"
+    out_path = root / "packets" / "examples" / f"{packet_id}.json"
     if out_path.exists():
         die(f"already exists: {out_path}")
 

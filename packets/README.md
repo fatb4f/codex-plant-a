@@ -16,6 +16,6 @@ Packets are **mechanical, auditable units of work** executed through Codex skill
 - `packet_contract.template.md`: canonical contract template to copy into a packet contract file.
 
 ## Typical usage
-1) Create contract under `packet/examples/<packet_id>.json`.
+1) Create contract under `packets/examples/<packet_id>.json`.
 2) Run `packet-runner` with the contract path.
 3) Review evidence under `.codex/out/<packet_id>/`.
