@@ -80,6 +80,20 @@ def git_op_in_progress(gitdir: Path) -> bool:
     return False
 
 
+def find_forbidden_roots(repo_root: Path) -> List[str]:
+    forbidden: List[str] = []
+    for target in (".codex", ".quint"):
+        for path in repo_root.rglob(target):
+            if not path.is_dir():
+                continue
+            try:
+                rel = path.relative_to(repo_root)
+            except ValueError:
+                rel = path
+            forbidden.append(str(rel))
+    return forbidden
+
+
 def safe_read_json(path: Path) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
     if not path.exists():
         return None, f"contract not found: {path}"
@@ -404,6 +418,12 @@ def main() -> int:
     plant_err = validate_plant_root(PLANT_ROOT)
     if plant_err:
         decision.deny("PLANT_INVALID", plant_err)
+
+    if decision.allow:
+        forbidden_paths = find_forbidden_roots(repo_root)
+        if forbidden_paths:
+            sample = ", ".join(forbidden_paths[:3])
+            decision.deny("FORBIDDEN_ROOTS", f"forbidden directories present: {sample}")
 
     if decision.allow:
         if git_porcelain(repo_root):
