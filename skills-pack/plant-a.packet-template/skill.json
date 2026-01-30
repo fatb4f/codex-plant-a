@@ -1,8 +1,8 @@
 {
-  "skill_id": "packet-template",
+  "skill_id": "plant-a.packet-template",
   "version": "0.2.0",
   "title": "Packet Template (contract example generator)",
-  "description": "Creates a new packet example contract file under packets/examples using the SSOT template.",
+  "description": "Creates a new packet contract and EXEC_PROMPT under the Plant A state root using the SSOT template.",
   "entrypoint": "scripts/new_packet.py",
   "inputs": {
     "packet_id": {

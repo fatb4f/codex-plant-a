@@ -23,12 +23,12 @@ human-in-the-loop instructions.
 ## Nodes
 - **Author Packet**: Create or update the contract and execution prompt.
 - **S0 Root Preflight**: Validate base invariants (clean root unless contract allows).
-- **G0 Enter WORK**: Provision/validate `.codex/.worktrees/<packet_id>/`.
+- **G0 Enter WORK**: Provision/validate `$CODEX_HOME/plant-a/worktrees/<packet_id>/`.
 - **S1 Execute in WORK**: Run tasks strictly within the worktree and contract bounds.
-- **S2 Evidence**: Emit required evidence under `.codex/out/<packet_id>/`.
+- **S2 Evidence**: Emit required evidence under `$CODEX_HOME/plant-a/out/<packet_id>/`.
 - **PROMOTE**: Repo-specific integration gate outside Plant A.
 
 ## Tools
-- S0: `.codex/tools/root_preflight.py`
-- G0: `.codex/tools/g0_enter_work.py`
-- S1/S2: `.codex/tools/run_packet.py` + `.codex/tools/evidence/collect_packet_evidence.py`
+- S0: `tools/root_preflight.py`
+- G0: `tools/g0_enter_work.py`
+- S1/S2: `tools/run_packet.py` + `tools/evidence/collect_packet_evidence.py`

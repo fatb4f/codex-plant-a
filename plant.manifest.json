@@ -24,6 +24,7 @@
   "required_dirs": [
     "packets",
     "skills",
+    "skills-pack",
     "tools",
     "tools/evidence",
     "schemas"

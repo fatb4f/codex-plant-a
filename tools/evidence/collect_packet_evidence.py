@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Packet-002: Structured Post-Run Evidence Harness.
 
-Writes a uniform bundle to:
-  .codex/out/<packet_id>/
+Writes a uniform bundle to the Plant A state root (default):
+  $CODEX_HOME/plant-a/out/<packet_id>/
     evidence.json
     evidence.md
     manifest.json
@@ -18,7 +18,7 @@ Inputs:
 - --contract <path> (required)
 - --meta <path> (optional; runner-written meta.json)
 
-The harness prefers pre-captured raw files in .codex/out/<packet_id>/raw/
+The harness prefers pre-captured raw files in the evidence out_dir /<packet_id>/raw/
 (head_before.txt, status_before.txt) if present, otherwise it captures
 current values.
 """
@@ -35,6 +35,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from path_utils import (
+    ensure_git_root,
+    resolve_contract_path,
+    resolve_repo_root,
+    resolve_state_path,
+    resolve_state_root,
+)
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
@@ -43,13 +52,6 @@ def utc_now() -> str:
 def run(cmd: List[str], cwd: Optional[Path] = None) -> Tuple[int, str, str]:
     p = subprocess.run(cmd, cwd=str(cwd) if cwd else None, text=True, capture_output=True)
     return p.returncode, p.stdout, p.stderr
-
-
-def git_root() -> Path:
-    rc, out, err = run(["git", "rev-parse", "--show-toplevel"])
-    if rc != 0:
-        raise RuntimeError(err.strip() or "not a git repo")
-    return Path(out.strip())
 
 
 def read_text(p: Path) -> str:
@@ -150,27 +152,35 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--contract", required=True)
     ap.add_argument("--meta")
+    ap.add_argument("--repo-root", help="Target repo root (defaults to git rev-parse).")
+    ap.add_argument("--codex-home", help="Override CODEX_HOME for Plant A state.")
     args = ap.parse_args()
 
     generated_at = utc_now()
 
-    # Be resilient: if not in git, write minimal evidence to ./out/unknown
     try:
-        root = git_root()
+        repo_root = resolve_repo_root(args.repo_root)
+        ensure_git_root(repo_root)
     except Exception as e:
-        out_dir = Path(".codex/out") / "unknown"
+        state_root = resolve_state_root(args.codex_home)
+        out_dir = resolve_state_path(None, state_root, "out") / "unknown"
         (out_dir / "raw").mkdir(parents=True, exist_ok=True)
         write_json(out_dir / "evidence.json", {"generated_at_utc": utc_now(), "error": str(e)})
         return 2
 
-    contract_path = Path(args.contract)
-    if not contract_path.is_absolute():
-        contract_path = (root / contract_path).resolve()
+    state_root = resolve_state_root(args.codex_home)
+    contract_path = resolve_contract_path(args.contract, repo_root)
+    if not contract_path.exists():
+        raw = Path(args.contract)
+        if not raw.is_absolute():
+            alt = (state_root / raw).resolve()
+            if alt.exists():
+                contract_path = alt
 
     try:
         contract = json.loads(read_text(contract_path))
     except Exception as e:
-        out_dir = root / ".codex/out" / "unknown"
+        out_dir = resolve_state_path(None, state_root, "out") / "unknown"
         (out_dir / "raw").mkdir(parents=True, exist_ok=True)
         write_json(out_dir / "evidence.json", {"generated_at_utc": utc_now(), "error": str(e)})
         return 2
@@ -184,10 +194,10 @@ def main() -> int:
     run_cfg = dict(contract.get("run") or {})
     evidence_cfg = dict(contract.get("evidence") or {})
 
-    out_root = str(evidence_cfg.get("out_dir") or ".codex/out")
+    out_root = str(resolve_state_path(evidence_cfg.get("out_dir"), state_root, "out"))
     include_patch = bool(evidence_cfg.get("include_git_diff_patch", False))
 
-    out_dir = (root / out_root / packet_id).resolve()
+    out_dir = (Path(out_root) / packet_id).resolve()
     raw_dir = out_dir / "raw"
     raw_dir.mkdir(parents=True, exist_ok=True)
 
@@ -196,7 +206,7 @@ def main() -> int:
     if args.meta:
         meta_path = Path(args.meta)
         if not meta_path.is_absolute():
-            meta_path = (root / meta_path).resolve()
+            meta_path = (repo_root / meta_path).resolve()
         if meta_path.exists():
             try:
                 meta = json.loads(read_text(meta_path))
@@ -205,8 +215,8 @@ def main() -> int:
 
     wt_path = meta.get("worktree_path")
     if not wt_path:
-        wt_candidate = root / ".codex/.worktrees" / packet_id
-        wt_path = str(wt_candidate) if wt_candidate.exists() else str(root)
+        wt_candidate = resolve_state_path(None, state_root, "worktrees") / packet_id
+        wt_path = str(wt_candidate) if wt_candidate.exists() else str(repo_root)
     wt = Path(wt_path)
 
     # Capture BEFORE from raw if present
@@ -342,7 +352,7 @@ def main() -> int:
     evidence: Dict[str, Any] = {
         "packet_id": packet_id,
         "generated_at_utc": utc_now(),
-        "repo": {"root": str(root), "base_ref": base_ref, "heads": {"before": head_before, "after": head_after}},
+        "repo": {"root": str(repo_root), "base_ref": base_ref, "heads": {"before": head_before, "after": head_after}},
         "worktree": {"path": str(wt), "branch": branch},
         "status": {"before": {"porcelain": status_before}, "after": {"porcelain": status_after}},
         "diff": {

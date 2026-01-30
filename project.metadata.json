@@ -1,0 +1,10 @@
+{
+  "id": "codex-plant-a",
+  "title": "codex-plant-a",
+  "one_liner": "Repo-agnostic Codex execution surface for CODEX_HOME skills and target-aware runs.",
+  "tags": ["codex", "plant-a", "tooling"],
+  "stack": ["python"],
+  "entrypoints": {
+    "update_manifest": "/home/src404/.config/codex/bin/update_project_manifest.py"
+  }
+}

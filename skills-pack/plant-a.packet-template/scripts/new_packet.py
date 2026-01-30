@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import pathlib
 import sys
 from typing import Any, Dict
@@ -23,8 +24,19 @@ def die(msg: str, code: int = 2) -> None:
     raise SystemExit(code)
 
 
-def plant_root() -> pathlib.Path:
-    return pathlib.Path(__file__).resolve().parents[3]
+def resolve_codex_home(codex_home: str | None) -> pathlib.Path:
+    if codex_home:
+        return pathlib.Path(os.path.expandvars(os.path.expanduser(codex_home))).resolve()
+    env = os.environ.get("CODEX_HOME")
+    if env:
+        return pathlib.Path(os.path.expandvars(os.path.expanduser(env))).resolve()
+    xdg = os.environ.get("XDG_CONFIG_HOME")
+    base = pathlib.Path(xdg) if xdg else (pathlib.Path.home() / ".config")
+    return (base / "codex").resolve()
+
+
+def plant_root(codex_home: str | None) -> pathlib.Path:
+    return resolve_codex_home(codex_home) / "plant-a"
 
 
 def load_prompt_validator(root: pathlib.Path):
@@ -102,6 +114,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--layout", choices=["dir", "flat"], default="dir", help="packet layout")
     parser.add_argument("--examples", action="store_true", help="write under packets/examples/")
     parser.add_argument("--validate-prompt", action="store_true", help="validate EXEC_PROMPT metadata")
+    parser.add_argument("--codex-home", help="Override CODEX_HOME for Plant A state.")
     return parser.parse_args(argv[1:])
 
 
@@ -126,21 +139,25 @@ def main(argv: list[str]) -> int:
         "branch": args.branch or defaults["branch"],
     }
 
-    root = plant_root()
+    root = plant_root(args.codex_home)
+    state_root = root
     template = load_template(template_path(root, args.template))
     contract = build_contract(template, mapping)
     prompt_template = load_prompt_template(prompt_template_path(root, args.prompt_template))
 
     if args.layout == "dir":
-        base_dir = root / "packets" / ("examples" if args.examples else mapping["area"]) / packet_id
+        base_dir = state_root / "packets" / ("examples" if args.examples else mapping["area"]) / packet_id
         contract_path = base_dir / "contract.json"
         prompt_path = base_dir / "EXEC_PROMPT.md"
-        contract_rel = f".codex/packets/{'examples' if args.examples else mapping['area']}/{packet_id}/contract.json"
+        contract_rel = (
+            f"$CODEX_HOME/plant-a/packets/"
+            f"{'examples' if args.examples else mapping['area']}/{packet_id}/contract.json"
+        )
     else:
-        base_dir = root / "packets" / "examples"
+        base_dir = state_root / "packets" / "examples"
         contract_path = base_dir / f"{packet_id}.json"
         prompt_path = base_dir / f"{packet_id}.EXEC_PROMPT.md"
-        contract_rel = f".codex/packets/examples/{packet_id}.json"
+        contract_rel = f"$CODEX_HOME/plant-a/packets/examples/{packet_id}.json"
 
     if contract_path.exists():
         die(f"already exists: {contract_path}")
@@ -156,7 +173,7 @@ def main(argv: list[str]) -> int:
             "packet_id": packet_id,
             "area": mapping["area"],
             "contract_path": contract_rel,
-            "worktree_root": f".codex/.worktrees/{packet_id}/",
+            "worktree_root": f"$CODEX_HOME/plant-a/worktrees/{packet_id}/",
         },
     )
     prompt_path.write_text(prompt_text, encoding="utf-8")

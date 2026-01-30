@@ -32,9 +32,6 @@ def ensure_list_of_strings(name: str, value: Any) -> Optional[str]:
 
 
 def find_manifest(repo_root: Path) -> Tuple[Optional[Path], Optional[Path]]:
-    downstream = repo_root / ".codex" / "plant.manifest.json"
-    if downstream.exists():
-        return downstream.parent, downstream
     upstream = repo_root / "plant.manifest.json"
     if upstream.exists():
         return upstream.parent, upstream
@@ -89,7 +86,17 @@ def validate_manifest(manifest: Dict[str, Any], plant_root: Path) -> Optional[st
 def validate_repo(repo_root: Path) -> Optional[str]:
     plant_root, manifest_path = find_manifest(repo_root)
     if plant_root is None or manifest_path is None:
-        return "plant.manifest.json not found in repo root or .codex/"
+        return "plant.manifest.json not found in repo root"
+    manifest, err = read_json(manifest_path)
+    if err:
+        return err
+    return validate_manifest(manifest, plant_root)
+
+
+def validate_plant_root(plant_root: Path) -> Optional[str]:
+    manifest_path = plant_root / "plant.manifest.json"
+    if not manifest_path.exists():
+        return f"plant.manifest.json not found at {manifest_path}"
     manifest, err = read_json(manifest_path)
     if err:
         return err

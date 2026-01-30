@@ -1,33 +1,39 @@
 # Codex Plant A
 
-Codex Plant A is a repo-agnostic execution surface designed to be vendored into downstream
-repos as a git subtree under `.codex/`. It provides packet templates, execution tooling,
-and evidence conventions while remaining fully self-contained under `.codex/`.
+Plant A is a repo-agnostic execution surface intended to live under `CODEX_HOME`.
+It provides packet templates, execution tooling, and evidence conventions while keeping
+all runtime state out of target repos.
 
-Start here (downstream): `.codex/agents.md`
+## Export surface (skills-pack)
+`skills-pack/` is the subtree-importable export surface for `$CODEX_HOME/skills/`:
+- `skills-pack/plant-a.packet-runner/`
+- `skills-pack/plant-a.packet-template/`
 
-## Plant A vs Plant B
-- **Plant A (this repo):** shared Codex execution surface used across projects
-  (`.codex/` tooling, packets, skills, evidence layout). It is repo-agnostic.
-- **Plant B (project-specific):** domain logic, schemas, policies, and tools that live
-  in the project repo outside `.codex/` (e.g., `control/`, `tools/`, `docs/`).
+`skills/` remains as a compatibility layer (symlinks to `skills-pack/`).
 
-Plant A must not require or create files outside `.codex/` downstream.
-
-## Install/update (downstream)
-Plant A is consumed as a git subtree under `.codex/`:
-```bash
-git subtree add --prefix .codex https://github.com/fatb4f/codex-plant-a.git main --squash
-git subtree pull --prefix .codex https://github.com/fatb4f/codex-plant-a.git main --squash
+## Global-only roots (no repo-local .codex/.quint)
+Plant A must not create or depend on repo-local `./.codex/` or `./.quint/`.
+All runtime artifacts live under the Plant A state root:
+```
+$CODEX_HOME/plant-a/{packets,out,worktrees}/...
 ```
 
-## Run a packet
+## Install via chezmoi subtree (example)
+From your chezmoi source directory:
 ```bash
-bash .codex/skills/packet-runner/scripts/run_packet.sh .codex/packets/examples/packet-000-foundation.json
+git subtree add --prefix "$CODEX_HOME/skills/plant-a.packet-runner" /path/to/codex-plant-a skills-pack/plant-a.packet-runner --squash
+git subtree add --prefix "$CODEX_HOME/skills/plant-a.packet-template" /path/to/codex-plant-a skills-pack/plant-a.packet-template --squash
+```
+
+## Run a packet (target-aware)
+```bash
+bash $CODEX_HOME/skills/plant-a.packet-runner/scripts/run_packet.sh \
+  packets/examples/packet-000-foundation.json \
+  --repo-root /path/to/target
 ```
 
 ## Evidence output
 Evidence bundles are written under:
 ```
-.codex/out/<packet_id>/
+$CODEX_HOME/plant-a/out/<packet_id>/
 ```

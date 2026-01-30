@@ -8,7 +8,7 @@ Responsibilities:
 
 Notes:
 - stdlib only
-- evidence is written to .codex/out/<packet_id>/
+- evidence is written under the Plant A state root (default: $CODEX_HOME/plant-a/out/<packet_id>/)
 """
 
 from __future__ import annotations
@@ -21,6 +21,14 @@ import platform
 import subprocess
 import sys
 from typing import Any, Dict, List, Tuple
+
+from path_utils import (
+    ensure_git_root,
+    resolve_contract_path,
+    resolve_repo_root,
+    resolve_state_path,
+    resolve_state_root,
+)
 
 RUNNER_VERSION = "0.1.3"  # Packet-002
 PLANT_ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -236,8 +244,25 @@ def gate_evidence_path(out_dir: str, packet_id: str, name: str) -> pathlib.Path:
     return pathlib.Path(out_dir) / packet_id / f"{name}.json"
 
 
-def run_gate(script: pathlib.Path, contract_path: str, evidence_path: pathlib.Path) -> int:
-    argv = [sys.executable, str(script), "--contract", contract_path, "--evidence-out", str(evidence_path)]
+def run_gate(
+    script: pathlib.Path,
+    contract_path: str,
+    evidence_path: pathlib.Path,
+    repo_root: pathlib.Path,
+    codex_home: str | None,
+) -> int:
+    argv = [
+        sys.executable,
+        str(script),
+        "--contract",
+        contract_path,
+        "--evidence-out",
+        str(evidence_path),
+        "--repo-root",
+        str(repo_root),
+    ]
+    if codex_home:
+        argv += ["--codex-home", codex_home]
     p = subprocess.run(argv, check=False)
     return p.returncode
 
@@ -281,9 +306,16 @@ def run_commands(run_cfg: Dict[str, Any], cwd: str, out_log: List[str]) -> Tuple
     return results, meta
 
 
-def collect_packet_evidence(contract_path: str, meta_path: pathlib.Path | None) -> None:
+def collect_packet_evidence(
+    contract_path: str,
+    meta_path: pathlib.Path | None,
+    repo_root: pathlib.Path,
+    codex_home: str | None,
+) -> None:
     collector = PLANT_ROOT / "tools" / "evidence" / "collect_packet_evidence.py"
-    argv = [sys.executable, str(collector), "--contract", contract_path]
+    argv = [sys.executable, str(collector), "--contract", contract_path, "--repo-root", str(repo_root)]
+    if codex_home:
+        argv += ["--codex-home", codex_home]
     if meta_path is not None:
         argv += ["--meta", str(meta_path)]
     subprocess.run(argv, check=False)
@@ -317,6 +349,8 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
         action="store_true",
         help="Reuse existing worktree if G0 denies due to collision.",
     )
+    ap.add_argument("--repo-root", help="Target repo root (defaults to git rev-parse).")
+    ap.add_argument("--codex-home", help="Override CODEX_HOME for Plant A state.")
     return ap.parse_args(argv[1:])
 
 
@@ -324,6 +358,7 @@ def resume_from_collision(
     g0_path: pathlib.Path,
     base_ref: str,
     branch: str,
+    repo_root: pathlib.Path,
 ) -> Tuple[str | None, str | None, List[str]]:
     reasons: List[str] = []
     if not g0_path.exists():
@@ -353,7 +388,7 @@ def resume_from_collision(
     if branch_name and branch_name != branch:
         return None, None, reasons
     try:
-        base_sha = git_rev_parse(base_ref)
+        base_sha = git_rev_parse(base_ref, cwd=str(repo_root))
     except Exception:
         base_sha = None
     reasons.append("resume_existing_worktree")
@@ -362,7 +397,18 @@ def resume_from_collision(
 
 def main(argv: List[str]) -> int:
     args = parse_args(argv)
-    contract_path = args.contract_path
+    repo_root = resolve_repo_root(args.repo_root)
+    ensure_git_root(repo_root)
+    state_root = resolve_state_root(args.codex_home)
+
+    contract_path_obj = resolve_contract_path(args.contract_path, repo_root)
+    if not contract_path_obj.exists():
+        raw = pathlib.Path(args.contract_path)
+        if not raw.is_absolute():
+            alt = (state_root / raw).resolve()
+            if alt.exists():
+                contract_path_obj = alt
+    contract_path = str(contract_path_obj)
     contract = load_json(contract_path)
     validate_exec_prompt(pathlib.Path(contract_path))
 
@@ -375,7 +421,7 @@ def main(argv: List[str]) -> int:
     evidence_cfg = require(contract, "evidence", dict)
     github_cfg = contract.get("github") if isinstance(contract.get("github"), dict) else None
 
-    out_dir = str(evidence_cfg.get("out_dir", str(PLANT_ROOT / "out")))
+    out_dir = str(resolve_state_path(evidence_cfg.get("out_dir"), state_root, "out"))
     out_base = pathlib.Path(out_dir) / packet_id
     raw_dir = out_base / "raw"
     raw_dir.mkdir(parents=True, exist_ok=True)
@@ -402,13 +448,25 @@ def main(argv: List[str]) -> int:
         preflight_path = gate_evidence_path(out_dir, packet_id, "root_preflight")
         g0_path = gate_evidence_path(out_dir, packet_id, "g0_enter_work")
 
-        rc = run_gate(PLANT_ROOT / "tools" / "root_preflight.py", contract_path, preflight_path)
+        rc = run_gate(
+            PLANT_ROOT / "tools" / "root_preflight.py",
+            contract_path,
+            preflight_path,
+            repo_root,
+            args.codex_home,
+        )
         if rc != 0:
             raise SystemExit("root preflight denied")
 
-        rc = run_gate(PLANT_ROOT / "tools" / "g0_enter_work.py", contract_path, g0_path)
+        rc = run_gate(
+            PLANT_ROOT / "tools" / "g0_enter_work.py",
+            contract_path,
+            g0_path,
+            repo_root,
+            args.codex_home,
+        )
         if rc != 0 and args.resume:
-            wt_path, base_sha, resume_reasons = resume_from_collision(g0_path, base_ref, branch)
+            wt_path, base_sha, resume_reasons = resume_from_collision(g0_path, base_ref, branch, repo_root)
             if wt_path:
                 reasons.extend(resume_reasons)
             else:
@@ -418,7 +476,7 @@ def main(argv: List[str]) -> int:
         else:
             g0_evidence = read_json(g0_path)
             wt_path = g0_evidence.get("worktree_path")
-            base_sha = g0_evidence.get("base_sha") or git_rev_parse(base_ref)
+            base_sha = g0_evidence.get("base_sha") or git_rev_parse(base_ref, cwd=str(repo_root))
         if not wt_path:
             raise SystemExit("worktree_path not set by G0")
 
@@ -460,7 +518,7 @@ def main(argv: List[str]) -> int:
             "runner_version": RUNNER_VERSION,
             "python": sys.version.split()[0],
             "platform": platform.platform(),
-            "repo_root": str(pathlib.Path.cwd()),
+            "repo_root": str(repo_root),
             "packet_id": packet_id,
             "base_ref": base_ref,
             "base_sha": base_sha,
@@ -482,7 +540,12 @@ def main(argv: List[str]) -> int:
         write_json(meta_path, meta)
 
         # Always run the Packet-002 collector (even on DENY)
-        collect_packet_evidence(contract_path=contract_path, meta_path=meta_path)
+        collect_packet_evidence(
+            contract_path=contract_path,
+            meta_path=meta_path,
+            repo_root=repo_root,
+            codex_home=args.codex_home,
+        )
 
     missing = required_evidence_missing(out_base)
     evidence_decision = None

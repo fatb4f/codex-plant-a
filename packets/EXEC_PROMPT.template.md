@@ -23,10 +23,10 @@ unambiguous. Replace all placeholders.
 ```
 
 ## Contract
-- Contract path: `.codex/packets/<area>/<packet_id>/contract.json`
+- Contract path: `$CODEX_HOME/plant-a/packets/<area>/<packet_id>/contract.json`
 
 ## Execution location
-- Worktree root: `.codex/.worktrees/<packet_id>/`
+- Worktree root: `$CODEX_HOME/plant-a/worktrees/<packet_id>/`
 
 ## Tasks
 1) <task 1>
@@ -36,7 +36,7 @@ unambiguous. Replace all placeholders.
 - <command or check> (required)
 
 ## Evidence
-Required artifacts under `.codex/out/<packet_id>/`:
+Required artifacts under `$CODEX_HOME/plant-a/out/<packet_id>/`:
 - `summary.md`
 - `raw/diffstat.txt`
 - <any additional raw outputs>

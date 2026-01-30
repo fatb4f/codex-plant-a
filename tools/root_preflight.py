@@ -12,7 +12,16 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from validate_plant import validate_repo
+from path_utils import (
+    ensure_git_root,
+    resolve_contract_path,
+    resolve_repo_root,
+    resolve_state_path,
+    resolve_state_root,
+)
+from validate_plant import validate_plant_root
+
+PLANT_ROOT = Path(__file__).resolve().parents[1]
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
@@ -24,13 +33,6 @@ def run(cmd: List[str], cwd: Optional[Path] = None) -> Tuple[int, str, str]:
         return p.returncode, p.stdout, p.stderr
     except FileNotFoundError as e:
         return 127, "", str(e)
-
-
-def git_root() -> Optional[Path]:
-    rc, out, err = run(["git", "rev-parse", "--show-toplevel"])
-    if rc != 0:
-        return None
-    return Path(out.strip())
 
 
 def git_dir(repo: Path) -> Optional[Path]:
@@ -348,13 +350,13 @@ class Decision:
             self.message = message
 
 
-def default_evidence_path(contract: Optional[Dict[str, Any]]) -> Path:
-    out_dir = ".codex/out"
+def default_evidence_path(contract: Optional[Dict[str, Any]], state_root: Path) -> Path:
+    out_dir = str(resolve_state_path(None, state_root, "out"))
     packet_id = "unknown"
     if contract:
         packet_id = str(contract.get("packet_id") or packet_id)
         evidence = contract.get("evidence") or {}
-        out_dir = str(evidence.get("out_dir") or out_dir)
+        out_dir = str(resolve_state_path(evidence.get("out_dir"), state_root, "out"))
     return Path(out_dir) / packet_id / "root_preflight.json"
 
 
@@ -362,21 +364,31 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Root preflight (S0) gate.")
     parser.add_argument("--contract", required=True, help="Path to packet contract JSON.")
     parser.add_argument("--evidence-out", help="Override evidence output path.")
+    parser.add_argument("--repo-root", help="Target repo root (defaults to git rev-parse).")
+    parser.add_argument("--codex-home", help="Override CODEX_HOME for Plant A state.")
     args = parser.parse_args()
 
-    repo_root = git_root()
+    repo_root = resolve_repo_root(args.repo_root)
+    ensure_git_root(repo_root)
+    state_root = resolve_state_root(args.codex_home)
     decision = Decision()
 
-    contract_path = Path(args.contract)
+    contract_path = resolve_contract_path(args.contract, repo_root)
+    if not contract_path.exists():
+        raw = Path(args.contract)
+        if not raw.is_absolute():
+            alt = (state_root / raw).resolve()
+            if alt.exists():
+                contract_path = alt
     contract, contract_err = safe_read_json(contract_path)
 
-    evidence_path = Path(args.evidence_out) if args.evidence_out else default_evidence_path(contract)
+    evidence_path = Path(args.evidence_out) if args.evidence_out else default_evidence_path(contract, state_root)
     evidence_path.parent.mkdir(parents=True, exist_ok=True)
 
     base_ref = None
     github_ops_required = False
     net_ops_required = False
-    worktree_root = ".codex/.worktrees"
+    worktree_root = str(resolve_state_path(None, state_root, "worktrees"))
 
     if contract is None:
         decision.deny("CONTRACT_INVALID", contract_err or "contract parse failed")
@@ -385,39 +397,31 @@ def main() -> int:
         github_ops_required = bool(contract.get("github_ops_required", False))
         net_ops_required = bool(contract.get("net_ops_required", False))
         policy = contract.get("worktree_policy") or {}
-        worktree_root = str(policy.get("worktree_root") or worktree_root)
+        worktree_root = str(resolve_state_path(policy.get("worktree_root"), state_root, "worktrees"))
         if not isinstance(base_ref, str) or not base_ref.strip():
             decision.deny("BASE_REF_MISSING", "base_ref missing or empty")
 
-    if repo_root is None:
-        decision.deny("ENVELOPE_UNAVAILABLE", "not a git repository")
-    else:
-        plant_err = validate_repo(repo_root)
-        if plant_err:
-            decision.deny("PLANT_INVALID", plant_err)
-        cwd = Path.cwd().resolve()
-        if cwd != repo_root.resolve():
-            decision.deny("ENVELOPE_UNAVAILABLE", "not running from repo root")
-        if ".worktrees" in cwd.parts:
-            decision.deny("ENVELOPE_UNAVAILABLE", "preflight must run from repo root (not inside .codex/.worktrees)")
+    plant_err = validate_plant_root(PLANT_ROOT)
+    if plant_err:
+        decision.deny("PLANT_INVALID", plant_err)
 
-    if decision.allow and repo_root:
+    if decision.allow:
         if git_porcelain(repo_root):
             decision.deny("DIRTY_ROOT_PRE", "root working tree not clean")
 
-    if decision.allow and repo_root:
+    if decision.allow:
         gdir = git_dir(repo_root)
         if gdir and git_op_in_progress(gdir):
             decision.deny("GIT_OP_IN_PROGRESS", "git operation in progress in root")
 
     head_ok = False
     head_ref = ""
-    if decision.allow and repo_root:
+    if decision.allow:
         head_ok, head_ref = git_symbolic_ref(repo_root)
         if not head_ok:
             decision.deny("HEAD_DETACHED_PRE", "HEAD is detached in root")
 
-    if decision.allow and repo_root and base_ref:
+    if decision.allow and base_ref:
         if git_rev_parse(repo_root, base_ref) is None:
             decision.deny("BASE_REF_MISSING", f"base_ref not resolvable: {base_ref}")
 
@@ -450,10 +454,10 @@ def main() -> int:
         if not sys.executable or not Path(sys.executable).exists():
             decision.deny("TOOLS_MISSING", "python interpreter not available")
 
-    if decision.allow and repo_root:
+    if decision.allow:
         if not os.access(repo_root, os.W_OK):
             decision.deny("ENVELOPE_UNAVAILABLE", "repo root is not writable")
-        wt_root = repo_root / worktree_root
+        wt_root = Path(worktree_root)
         if wt_root.exists() and not os.access(wt_root, os.W_OK):
             decision.deny("ENVELOPE_UNAVAILABLE", "worktree root is not writable")
         usage = shutil.disk_usage(repo_root)
@@ -462,25 +466,24 @@ def main() -> int:
 
     probes: Dict[str, Dict[str, Any]] = {}
     tx_mode = "offline"
-    if repo_root:
-        if shutil.which("gh") is None:
-            probes["gh_auth_status"] = {"rc": 127, "stdout": "", "stderr": "gh not found"}
-            probes["gh_pr_list"] = {"rc": 127, "stdout": "", "stderr": "gh not found"}
-            rc = 127
-            rc2 = 127
-        else:
-            rc, out, err = run(["gh", "auth", "status"], cwd=repo_root)
-            probes["gh_auth_status"] = {"rc": rc, "stdout": out, "stderr": err}
-            rc2, out2, err2 = run(["gh", "pr", "list", "--limit", "1"], cwd=repo_root)
-            probes["gh_pr_list"] = {"rc": rc2, "stdout": out2, "stderr": err2}
-        rc3, out3, err3 = run(["git", "ls-remote", "origin", "HEAD"], cwd=repo_root)
-        probes["git_ls_remote"] = {"rc": rc3, "stdout": out3, "stderr": err3}
-        if rc == 0 and rc2 == 0:
-            tx_mode = "online"
+    if shutil.which("gh") is None:
+        probes["gh_auth_status"] = {"rc": 127, "stdout": "", "stderr": "gh not found"}
+        probes["gh_pr_list"] = {"rc": 127, "stdout": "", "stderr": "gh not found"}
+        rc = 127
+        rc2 = 127
+    else:
+        rc, out, err = run(["gh", "auth", "status"], cwd=repo_root)
+        probes["gh_auth_status"] = {"rc": rc, "stdout": out, "stderr": err}
+        rc2, out2, err2 = run(["gh", "pr", "list", "--limit", "1"], cwd=repo_root)
+        probes["gh_pr_list"] = {"rc": rc2, "stdout": out2, "stderr": err2}
+    rc3, out3, err3 = run(["git", "ls-remote", "origin", "HEAD"], cwd=repo_root)
+    probes["git_ls_remote"] = {"rc": rc3, "stdout": out3, "stderr": err3}
+    if rc == 0 and rc2 == 0:
+        tx_mode = "online"
 
-        if decision.allow and github_ops_required:
-            if rc != 0 or rc2 != 0:
-                decision.deny("GITHUB_UNAVAILABLE", "GitHub auth/PR API unavailable")
+    if decision.allow and github_ops_required:
+        if rc != 0 or rc2 != 0:
+            decision.deny("GITHUB_UNAVAILABLE", "GitHub auth/PR API unavailable")
 
     if decision.allow and contract is not None and net_ops_required:
         net = contract.get("network_policy") or {}
@@ -500,7 +503,7 @@ def main() -> int:
     evidence = {
         "stage": "S0",
         "timestamp_utc": utc_now(),
-        "repo_root": str(repo_root) if repo_root else None,
+        "repo_root": str(repo_root),
         "base_ref": base_ref,
         "head_ref": head_ref if head_ok else "DETACHED",
         "github_ops_required": github_ops_required,

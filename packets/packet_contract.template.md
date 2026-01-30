@@ -1,7 +1,7 @@
 # Packet Contract (SSOT)
 
 This document describes the packet contract. The single source of truth for generation is
-`.codex/packets/packet_contract.template.json`.
+`packets/packet_contract.template.json`.
 
 > Copy to `packets/examples/<packet_id>.json` and fill in.
 
@@ -16,15 +16,15 @@ This document describes the packet contract. The single source of truth for gene
 - github_ops_required: false
 
 ## Path controls
-- allowed_paths: [".codex/"]
+- allowed_paths: ["*"]
 - forbidden_outputs: []
   - Use this list only for outputs that must not appear in git diffs or tracked files.
-  - Runtime directories like `.codex/out/` and `.codex/.worktrees/` are allowed to exist and should be ignored via `.gitignore`.
+  - Runtime directories under the Plant A state root should be ignored via global gitignore if needed.
 
 ## Worktree policy (required)
 - worktree_policy:
     mode: "strict" | "allow_dirty_allowlist"
-    worktree_root: ".codex/.worktrees"
+    worktree_root: "$CODEX_HOME/plant-a/worktrees"
     deny_if_worktree_exists: true
     allow_dirty_globs: []          # used only when mode=allow_dirty_allowlist
     allow_untracked_globs: []      # used only when mode=allow_dirty_allowlist
@@ -49,5 +49,5 @@ This document describes the packet contract. The single source of truth for gene
 
 ## Evidence (required)
 - evidence:
-    out_dir: ".codex/out"         # evidence is written under .codex/out/<packet_id>/
+    out_dir: "$CODEX_HOME/plant-a/out"         # evidence is written under .../out/<packet_id>/
     include_git_diff_patch: false
