@@ -147,36 +147,35 @@ def handle_doctor(args: argparse.Namespace, script_dir: Path) -> None:
 
 
 JUST_TEMPLATE = """\
-set shell := ["bash","-e","-u","-o","pipefail"]
-
-# {{{{repo_root}}}}: Absolute or relative path to the target repository root.
-# {{{{codex_home}}}}: Override CODEX_HOME (defaults to environment or ~/.config/codex).
+# {{repo_root}}: Absolute or relative path to the target repository root.
+# {{codex_home}}: Override CODEX_HOME (defaults to environment or ~/.config/codex).
 preflight repo_root="." codex_home="" :
-	{cli} preflight --repo-root "{{{{repo_root}}}}" --codex-home "{{{{codex_home}}}}"
+	{cli} preflight --repo-root "{{repo_root}}" --codex-home "{{codex_home}}"
 
-# {{{{contract}}}}: Path to the packet contract JSON.
-# {{{{repo_root}}}}: Absolute or relative path to the target repository root.
-# {{{{codex_home}}}}: Override CODEX_HOME (defaults to environment or ~/.config/codex).
+# {{contract}}: Path to the packet contract JSON.
+# {{repo_root}}: Absolute or relative path to the target repository root.
+# {{codex_home}}: Override CODEX_HOME (defaults to environment or ~/.config/codex).
 enter_work contract repo_root="." codex_home="" :
-	{cli} enter-work --repo-root "{{{{repo_root}}}}" --codex-home "{{{{codex_home}}}}" "{{{{contract}}}}"
+	{cli} enter-work --repo-root "{{repo_root}}" --codex-home "{{codex_home}}" "{{contract}}"
 
-# {{{{contract}}}}: Path to the packet contract JSON.
-# {{{{repo_root}}}}: Absolute or relative path to the target repository root.
-# {{{{codex_home}}}}: Override CODEX_HOME (defaults to environment or ~/.config/codex).
+# {{contract}}: Path to the packet contract JSON.
+# {{repo_root}}: Absolute or relative path to the target repository root.
+# {{codex_home}}: Override CODEX_HOME (defaults to environment or ~/.config/codex).
 run_packet contract repo_root="." codex_home="" :
-	{cli} run-packet --repo-root "{{{{repo_root}}}}" --codex-home "{{{{codex_home}}}}" "{{{{contract}}}}"
+	{cli} run-packet --repo-root "{{repo_root}}" --codex-home "{{codex_home}}" "{{contract}}"
 
-# {{{{contract}}}}: Path to the packet contract JSON.
-# {{{{repo_root}}}}: Absolute or relative path to the target repository root.
-# {{{{codex_home}}}}: Override CODEX_HOME (defaults to environment or ~/.config/codex).
+# {{contract}}: Path to the packet contract JSON.
+# {{repo_root}}: Absolute or relative path to the target repository root.
+# {{codex_home}}: Override CODEX_HOME (defaults to environment or ~/.config/codex).
 collect_evidence contract repo_root="." codex_home="" :
-	{cli} collect-evidence --repo-root "{{{{repo_root}}}}" --codex-home "{{{{codex_home}}}}" "{{{{contract}}}}"
+	{cli} collect-evidence --repo-root "{{repo_root}}" --codex-home "{{codex_home}}" "{{contract}}"
 
-# {{{{repo_root}}}}: Absolute or relative path to the target repository root.
-# {{{{codex_home}}}}: Override CODEX_HOME (defaults to environment or ~/.config/codex).
+# {{repo_root}}: Absolute or relative path to the target repository root.
+# {{codex_home}}: Override CODEX_HOME (defaults to environment or ~/.config/codex).
 doctor repo_root="." codex_home="" :
-	{cli} doctor --repo-root "{{{{repo_root}}}}" --codex-home "{{{{codex_home}}}}"
+	{cli} doctor --repo-root "{{repo_root}}" --codex-home "{{codex_home}}"
 """
+
 
 
 
@@ -185,7 +184,7 @@ def handle_just_render(args: argparse.Namespace) -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     codex_home = resolve_codex_home(args.codex_home)
     cli_path = (codex_home / "bin" / "ctrlex").resolve()
-    rendered = JUST_TEMPLATE.format(cli=cli_path)
+    rendered = JUST_TEMPLATE.replace("{cli}", str(cli_path))
     out_path.write_text(rendered, encoding="utf-8")
     print(f"wrote Justfile → {out_path}")
 
