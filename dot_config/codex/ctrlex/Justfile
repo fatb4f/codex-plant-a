@@ -1,4 +1,3 @@
-set shell := bash
-set shell.set := -euo pipefail
+set shell := ["bash","-e","-u","-o","pipefail"]
 
 import "../just/ctrlex.just"
