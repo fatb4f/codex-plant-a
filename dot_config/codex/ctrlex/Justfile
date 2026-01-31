@@ -1,0 +1,4 @@
+set shell := bash
+set shell.set := -euo pipefail
+
+import "../just/ctrlex.just"
