@@ -5,6 +5,22 @@ This document explains how to expose ctrlex tooling via `just-mcp`.
 ## Install just-mcp
 You can install via `binstall justmcp just-mcp` (preferred) or download a release tarball from https://github.com/justmcp/just-mcp/releases and unpack it into a directory on your `PATH`.
 
+## Generate the watched Justfile
+Run this once (or whenever the recipes change) so `just-mcp` can watch a stable, global Justfile:
+
+```bash
+ctrlex just render --out $CODEX_HOME/Justfile
+```
+The generated file exposes the migrated `preflight`, `enter_work`, `run_packet`, `collect_evidence`, and `doctor` recipes via the installed `ctrlex` CLI.
+
+## Print the MCP config stanza
+To register the MCP server, render a snippet that points at the global watch dir:
+
+```bash
+ctrlex just install-mcp
+```
+Copy the output into `~/.codex/config.toml` under `[mcp_servers.<name>]` so Codex can start the stdio server with `just-mcp`.
+
 ## Start the MCP server
 ```bash
 $CODEX_HOME/bin/ctrlex-just-mcp

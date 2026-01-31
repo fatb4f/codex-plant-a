@@ -1,0 +1,266 @@
+#!/usr/bin/env python3
+"""ctrlex CLI for invoking ctrlex tooling and generating Justfiles."""
+
+from __future__ import annotations
+
+import argparse
+import os
+import subprocess
+import sys
+from pathlib import Path
+from typing import Sequence
+
+
+def expand_path(raw: str | None) -> Path:
+    if raw is None:
+        raise ValueError("path not provided")
+    return Path(os.path.expanduser(raw)).resolve()
+
+
+def resolve_codex_home(raw: str | None) -> Path:
+    if raw:
+        return expand_path(raw)
+    env = os.environ.get("CODEX_HOME")
+    if env:
+        return Path(os.path.expanduser(env)).resolve()
+    xdg = os.environ.get("XDG_CONFIG_HOME")
+    base = Path(xdg) if xdg else Path.home() / ".config"
+    return (base / "codex").resolve()
+
+
+def resolve_state_root(codex_home: Path) -> Path:
+    ctrlex_root = codex_home / "ctrlex"
+    plant_root = codex_home / "plant-a"
+    if ctrlex_root.exists():
+        return ctrlex_root.resolve()
+    if plant_root.exists():
+        return plant_root.resolve()
+    return ctrlex_root.resolve()
+
+
+def resolve_repo_root(raw: str | None) -> Path:
+    if raw:
+        return expand_path(raw)
+    proc = subprocess.run(
+        ["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True
+    )
+    if proc.returncode != 0:
+        raise SystemExit("must run inside a git repo or pass --repo-root")
+    return Path(proc.stdout.strip()).resolve()
+
+
+def resolve_ctrlex_root(script_dir: Path) -> Path:
+    env = os.environ.get("CTRLEX_ROOT")
+    if env:
+        candidate = Path(os.path.expanduser(env)).resolve()
+        if (candidate / "tools").exists():
+            return candidate
+        raise SystemExit(
+            f"CTRLEX_ROOT is set to {candidate}, but {candidate / 'tools'} does not exist"
+        )
+    codex_home = resolve_codex_home(None)
+    vendor = codex_home / "skills" / "vendor" / "ctrlex"
+    if (vendor / "tools").exists():
+        return vendor.resolve()
+    if (script_dir / "tools").exists():
+        return script_dir.resolve()
+    raise SystemExit(
+        "CTRLEX_ROOT is not set and the default ($CODEX_HOME/skills/vendor/ctrlex) "
+        "does not exist. Set CTRLEX_ROOT to your ctrlex checkout."
+    )
+
+
+def run_script(script: Path, args: Sequence[str]) -> None:
+    cmd = [sys.executable, str(script), *args]
+    proc = subprocess.run(cmd)
+    if proc.returncode:
+        raise SystemExit(proc.returncode)
+
+
+def command_common_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--repo-root",
+        help="Git repo root for the target repository.",
+        default=None,
+    )
+    parser.add_argument(
+        "--codex-home",
+        help="Override the CODEX_HOME base path.",
+        default=None,
+    )
+
+
+def handle_preflight(args: argparse.Namespace, script_dir: Path) -> None:
+    repo_root = resolve_repo_root(args.repo_root)
+    codex_home = resolve_codex_home(args.codex_home)
+    ctrlex_root = resolve_ctrlex_root(script_dir)
+    script = ctrlex_root / "tools" / "root_preflight.py"
+    run_script(
+        script,
+        ["--repo-root", str(repo_root), "--codex-home", str(codex_home)],
+    )
+
+
+def handle_enter_work(args: argparse.Namespace, script_dir: Path) -> None:
+    repo_root = resolve_repo_root(args.repo_root)
+    codex_home = resolve_codex_home(args.codex_home)
+    ctrlex_root = resolve_ctrlex_root(script_dir)
+    script = ctrlex_root / "tools" / "g0_enter_work.py"
+    run_script(
+        script,
+        ["--repo-root", str(repo_root), "--codex-home", str(codex_home), args.contract],
+    )
+
+
+def handle_run_packet(args: argparse.Namespace, script_dir: Path) -> None:
+    repo_root = resolve_repo_root(args.repo_root)
+    codex_home = resolve_codex_home(args.codex_home)
+    ctrlex_root = resolve_ctrlex_root(script_dir)
+    script = ctrlex_root / "tools" / "run_packet.py"
+    run_script(
+        script,
+        ["--repo-root", str(repo_root), "--codex-home", str(codex_home), args.contract],
+    )
+
+
+def handle_collect_evidence(args: argparse.Namespace, script_dir: Path) -> None:
+    repo_root = resolve_repo_root(args.repo_root)
+    codex_home = resolve_codex_home(args.codex_home)
+    ctrlex_root = resolve_ctrlex_root(script_dir)
+    script = ctrlex_root / "tools" / "evidence" / "collect_packet_evidence.py"
+    run_script(
+        script,
+        ["--repo-root", str(repo_root), "--codex-home", str(codex_home), args.contract],
+    )
+
+
+def handle_doctor(args: argparse.Namespace, script_dir: Path) -> None:
+    repo_root = resolve_repo_root(args.repo_root)
+    codex_home = resolve_codex_home(args.codex_home)
+    state_root = resolve_state_root(codex_home)
+    print(f"repo_root={repo_root}")
+    print(f"CODEX_HOME={codex_home}")
+    print(f"state_root={state_root} (exists={'yes' if state_root.exists() else 'no'})")
+    for subdir in ["packets", "worktrees", "out", "log"]:
+        candidate = state_root / subdir
+        print(f"{subdir}={candidate} (exists={'yes' if candidate.exists() else 'no'})")
+
+
+JUST_TEMPLATE = """\
+set shell := ["bash","-e","-u","-o","pipefail"]
+
+# {{repo_root}}: Absolute or relative path to the target repository root.
+# {{codex_home}}: Override CODEX_HOME (defaults to environment or ~/.config/codex).
+preflight repo_root="." codex_home="" :
+\tctrlex preflight --repo-root "{{repo_root}}" --codex-home "{{codex_home}}"
+
+# {{contract}}: Path to the packet contract JSON.
+# {{repo_root}}: Absolute or relative path to the target repository root.
+# {{codex_home}}: Override CODEX_HOME (defaults to environment or ~/.config/codex).
+enter_work repo_root="." codex_home="" contract:
+\tctrlex enter-work --repo-root "{{repo_root}}" --codex-home "{{codex_home}}" "{{contract}}"
+
+# {{contract}}: Path to the packet contract JSON.
+# {{repo_root}}: Absolute or relative path to the target repository root.
+# {{codex_home}}: Override CODEX_HOME (defaults to environment or ~/.config/codex).
+run_packet repo_root="." codex_home="" contract:
+\tctrlex run-packet --repo-root "{{repo_root}}" --codex-home "{{codex_home}}" "{{contract}}"
+
+# {{contract}}: Path to the packet contract JSON.
+# {{repo_root}}: Absolute or relative path to the target repository root.
+# {{codex_home}}: Override CODEX_HOME (defaults to environment or ~/.config/codex).
+collect_evidence repo_root="." codex_home="" contract:
+\tctrlex collect-evidence --repo-root "{{repo_root}}" --codex-home "{{codex_home}}" "{{contract}}"
+
+# {{repo_root}}: Absolute or relative path to the target repository root.
+# {{codex_home}}: Override CODEX_HOME (defaults to environment or ~/.config/codex).
+doctor repo_root="." codex_home="" :
+\tctrlex doctor --repo-root "{{repo_root}}" --codex-home "{{codex_home}}"
+"""
+
+
+def handle_just_render(args: argparse.Namespace) -> None:
+    out_path = Path(os.path.expanduser(args.out)).resolve()
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(JUST_TEMPLATE, encoding="utf-8")
+    print(f"wrote Justfile → {out_path}")
+
+
+def handle_just_install_mcp(args: argparse.Namespace) -> None:
+    codex_home = resolve_codex_home(args.codex_home)
+    watch_dir = codex_home / "ctrlex"
+    try:
+        watch_dir.mkdir(parents=True, exist_ok=True)
+    except PermissionError as exc:
+        print(f"warning: could not create {watch_dir}: {exc}", file=sys.stderr)
+    ctrlex_root = resolve_ctrlex_root(Path(__file__).resolve().parent)
+    snippet = f"""[mcp_servers.{args.server_name}]
+command = "just-mcp"
+args = ["--watch-dir", "{watch_dir}:{args.watch_alias}"]
+env = {{
+    "CODEX_HOME" = "{codex_home}",
+    "CTRLEX_ROOT" = "{ctrlex_root}"
+}}
+"""
+    print(snippet)
+
+
+def main() -> None:
+    script_dir = Path(__file__).resolve().parent
+    parser = argparse.ArgumentParser(prog="ctrlex")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    preflight = subparsers.add_parser("preflight")
+    command_common_args(preflight)
+    preflight.set_defaults(func=lambda args: handle_preflight(args, script_dir))
+
+    enter = subparsers.add_parser("enter-work")
+    command_common_args(enter)
+    enter.add_argument("contract")
+    enter.set_defaults(func=lambda args: handle_enter_work(args, script_dir))
+
+    runner = subparsers.add_parser("run-packet")
+    command_common_args(runner)
+    runner.add_argument("contract")
+    runner.set_defaults(func=lambda args: handle_run_packet(args, script_dir))
+
+    gather = subparsers.add_parser("collect-evidence")
+    command_common_args(gather)
+    gather.add_argument("contract")
+    gather.set_defaults(func=lambda args: handle_collect_evidence(args, script_dir))
+
+    doctor = subparsers.add_parser("doctor")
+    command_common_args(doctor)
+    doctor.set_defaults(func=lambda args: handle_doctor(args, script_dir))
+
+    just = subparsers.add_parser("just")
+    just_sub = just.add_subparsers(dest="just_cmd", required=True)
+
+    render = just_sub.add_parser("render")
+    render.add_argument("--out", required=True)
+    render.set_defaults(func=lambda args: handle_just_render(args))
+
+    install = just_sub.add_parser("install-mcp")
+    install.add_argument(
+        "--codex-home",
+        help="Override the CODEX_HOME base path for the MCP server.",
+        default=None,
+    )
+    install.add_argument(
+        "--watch-alias",
+        help="Alias appended to tools (watch-dir:name).",
+        default="ctrlex",
+    )
+    install.add_argument(
+        "--server-name",
+        help="Name of the MCP server stanza.",
+        default="just_ctrlex",
+    )
+    install.set_defaults(func=lambda args: handle_just_install_mcp(args))
+
+    args = parser.parse_args()
+    args.func(args)
+
+
+if __name__ == "__main__":
+    main()

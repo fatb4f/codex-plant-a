@@ -37,3 +37,14 @@ Evidence bundles are written under:
 ```
 $CODEX_HOME/ctrlex/out/<packet_id>/
 ```
+
+## CLI & Just integration
+The `ctrlex` CLI bundles the Python tooling so you can run the canonical commands without walking into a repo:
+
+```bash
+ctrlex preflight --repo-root /path/to/repo
+ctrlex run-packet --repo-root /path/to/repo packets/examples/<packet>.json
+ctrlex collect-evidence --repo-root /path/to/repo packets/examples/<packet>.json
+```
+
+Use `ctrlex just render --out $CODEX_HOME/Justfile` to create the global Justfile watched by `just-mcp`, and `ctrlex just install-mcp` to print the MCP stanza that runs `just-mcp --watch-dir "$CODEX_HOME/ctrlex:ctrlex"`.
