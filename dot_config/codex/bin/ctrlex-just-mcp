@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+CODEX_HOME="${CODEX_HOME:-${XDG_CONFIG_HOME:-$HOME/.config}/codex}"
+WATCH_DIR="$CODEX_HOME/ctrlex"
+mkdir -p "$WATCH_DIR"
+
+exec just-mcp --watch-dir "$WATCH_DIR:ctrlex"
