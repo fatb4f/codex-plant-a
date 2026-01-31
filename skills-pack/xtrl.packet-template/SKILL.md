@@ -1,6 +1,6 @@
 ---
-name: ctrlex.packet-template
-description: Scaffold a packet contract and EXEC_PROMPT under the ctrlex state root.
+name: xtrl.packet-template
+description: Scaffold a packet contract and EXEC_PROMPT under the xtrl state root.
 ---
 
 ## Purpose
@@ -22,4 +22,4 @@ Scaffold a new packet contract and EXEC_PROMPT from the SSOT templates:
 
 ## Notes
 This skill only scaffolds the contract and prompt.
-Use `ctrlex.packet-runner` to execute a packet.
+Use `xtrl.packet-runner` to execute a packet.

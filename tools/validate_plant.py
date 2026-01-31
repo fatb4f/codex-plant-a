@@ -104,7 +104,7 @@ def validate_plant_root(plant_root: Path) -> Optional[str]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Validate ctrlex manifest and structure.")
+    parser = argparse.ArgumentParser(description="Validate xtrl manifest and structure.")
     parser.add_argument("--repo-root", default=".", help="Repo root to validate from.")
     args = parser.parse_args()
 

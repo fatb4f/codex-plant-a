@@ -1,23 +1,24 @@
-# Agents Runbook (ctrlex)
+# Agents Runbook (xtrl)
 
-This file defines the instruction set for operating Codex ctrlex when installed
-under the global Codex root (`CODEX_HOME`).
+This file defines the instruction set for operating Codex xtrl when installed under
+the global Codex root (`CODEX_HOME`).
 
 ## Situational awareness
-- **Global install:** ctrlex is installed under `$CODEX_HOME/ctrlex/` (Plant A is an alias for transition).
+- **Global install:** xtrl is installed under `$CODEX_HOME/xtrl/` (legacy `ctrlex`
+and `plant-a` roots may remain briefly for compatibility).
 - **Target-aware:** All execution operates on an explicit target repo.
-- **No repo-local roots:** ctrlex must not create or depend on `./.codex/` or `./.quint/`.
+- **No repo-local roots:** xtrl must not create or depend on `./.codex/` or `./.quint/`.
 
 ## Directory structure (global)
-- `$CODEX_HOME/ctrlex/README.md` - repository purpose and entry points
-- `$CODEX_HOME/ctrlex/plant.manifest.json` - structural manifest for drift prevention
-- `$CODEX_HOME/ctrlex/schemas/` - JSON schemas for contracts and the manifest
-- `$CODEX_HOME/ctrlex/packets/` - packet templates and example packets
-- `$CODEX_HOME/ctrlex/tools/` - execution tools (preflight, worktree, evidence)
-- `$CODEX_HOME/ctrlex/out/<packet_id>/` - evidence bundles
-- `$CODEX_HOME/ctrlex/worktrees/<packet_id>/` - isolated worktrees (WORK zone)
-- `$CODEX_HOME/skills/ctrlex.packet-template/` - packet scaffolding skill
-- `$CODEX_HOME/skills/ctrlex.packet-runner/` - packet runner skill
+- `$CODEX_HOME/xtrl/README.md` - repository purpose and entry points
+- `$CODEX_HOME/xtrl/plant.manifest.json` - structural manifest for drift prevention
+- `$CODEX_HOME/xtrl/schemas/` - JSON schemas for contracts and the manifest
+- `$CODEX_HOME/xtrl/packets/` - packet templates and example packets
+- `$CODEX_HOME/xtrl/tools/` - execution tools (preflight, worktree, evidence)
+- `$CODEX_HOME/xtrl/out/<packet_id>/` - evidence bundles
+- `$CODEX_HOME/xtrl/worktrees/<packet_id>/` - isolated worktrees (WORK zone)
+- `$CODEX_HOME/skills/xtrl.packet-template/` - packet scaffolding skill
+- `$CODEX_HOME/skills/xtrl.packet-runner/` - packet runner skill
 
 ## Packet contract template
 Use the canonical template files:
@@ -25,8 +26,8 @@ Use the canonical template files:
 - `packets/packet_contract.template.md`
 
 The contract is the single source of truth for boundaries and execution policy.
-Copy the JSON template to a packet file and fill identity, boundaries, worktree
-policy, network policy, execution, budgets, and evidence settings.
+Fill identity, boundaries, worktree policy, network policy, execution, budgets, and
+evidence settings.
 
 ## Packet EXEC_PROMPT
 Each packet must include an `EXEC_PROMPT.md` that defines the execution contract.
@@ -50,12 +51,14 @@ If using a flat contract, store the corresponding prompt as:
 - `packets/examples/<packet_id>.EXEC_PROMPT.md`
 
 ## Transition alias notes
-- A compatibility alias may expose `$CODEX_HOME/plant-a/` as a symlink to `$CODEX_HOME/ctrlex/` during the transition window.
-- CLI consumers can keep using `plant-a` for now if an alias script forwards to `ctrlex`.
+- A compatibility alias may expose `$CODEX_HOME/plant-a/` or `$CODEX_HOME/ctrlex/` as
+  symlinks to `$CODEX_HOME/xtrl/` during the transition window.
+- CLI consumers can keep using legacy entrypoints for a short window if an alias
+  script forwards to `xtrl`.
 
 ## Execution DAG (packet crafting)
-See `packets/EXECUTION_DAG.md` for the end-to-end DAG that covers packet
-crafting, worktree entry, execution, evidence, and promotion.
+See `packets/EXECUTION_DAG.md` for the end-to-end DAG that covers packet crafting,
+worktree entry, execution, evidence, and promotion.
 
 ## Tooling structure
 - `tools/root_preflight.py` - S0 root preflight guardrails.

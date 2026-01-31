@@ -1,8 +1,8 @@
 {
-  "id": "ctrlex",
-  "title": "ctrlex",
-  "one_liner": "Repo-agnostic Codex execution surface for CODEX_HOME ctrlex skills and target-aware runs.",
-  "tags": ["codex", "ctrlex", "plant-a", "tooling"],
+  "id": "xtrl",
+  "title": "xtrl",
+  "one_liner": "Repo-agnostic Codex execution surface for CODEX_HOME xtrl skills and target-aware runs.",
+  "tags": ["codex", "xtrl", "ctrlex", "plant-a", "tooling"],
   "stack": ["python"],
   "entrypoints": {
     "update_manifest": "/home/src404/.config/codex/bin/update_project_manifest.py"

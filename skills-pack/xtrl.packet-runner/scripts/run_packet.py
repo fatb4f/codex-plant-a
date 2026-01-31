@@ -36,7 +36,7 @@ def main(argv: list[str]) -> int:
     ap.add_argument("contract_path")
     ap.add_argument("--resume", action="store_true", help="Reuse existing worktree on collision.")
     ap.add_argument("--repo-root", help="Target repo root (defaults to git rev-parse).")
-    ap.add_argument("--codex-home", help="Override CODEX_HOME for the ctrlex state.")
+    ap.add_argument("--codex-home", help="Override CODEX_HOME for the xtrl state.")
     args = ap.parse_args(argv[1:])
     contract_path = args.contract_path
     repo_root = resolve_repo_root(args.repo_root)
@@ -49,12 +49,13 @@ def main(argv: list[str]) -> int:
     if subprocess.run(["git", "-C", repo_root, "status", "--porcelain"], text=True, capture_output=True).stdout.strip():
         raise SystemExit(f"target repo not clean: {repo_root}")
     codex_home = resolve_codex_home(args.codex_home)
-    ctrlex_root = pathlib.Path(codex_home) / "ctrlex"
-    if not ctrlex_root.exists():
-        fallback = pathlib.Path(codex_home) / "plant-a"
-        if fallback.exists():
-            ctrlex_root = fallback
-    runner = ctrlex_root / "tools" / "run_packet.py"
+    xtrl_root = pathlib.Path(codex_home) / "xtrl"
+    if not xtrl_root.exists():
+        fallback = pathlib.Path(codex_home) / "ctrlex"
+        if not fallback.exists():
+            fallback = pathlib.Path(codex_home) / "plant-a"
+        xtrl_root = fallback
+    runner = xtrl_root / "tools" / "run_packet.py"
     cmd = [sys.executable, str(runner), contract_path, "--repo-root", repo_root, "--codex-home", codex_home]
     if args.resume:
         cmd.append("--resume")

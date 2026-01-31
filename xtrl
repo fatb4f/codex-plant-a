@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ctrlex CLI for invoking ctrlex tooling and generating Justfiles."""
+"""xtrl CLI for invoking xtrl tooling and generating Justfiles."""
 
 from __future__ import annotations
 
@@ -29,13 +29,16 @@ def resolve_codex_home(raw: str | None) -> Path:
 
 
 def resolve_state_root(codex_home: Path) -> Path:
+    xtrl_root = codex_home / "xtrl"
     ctrlex_root = codex_home / "ctrlex"
     plant_root = codex_home / "plant-a"
+    if xtrl_root.exists():
+        return xtrl_root.resolve()
     if ctrlex_root.exists():
         return ctrlex_root.resolve()
     if plant_root.exists():
         return plant_root.resolve()
-    return ctrlex_root.resolve()
+    return xtrl_root.resolve()
 
 
 def resolve_repo_root(raw: str | None) -> Path:
@@ -49,24 +52,36 @@ def resolve_repo_root(raw: str | None) -> Path:
     return Path(proc.stdout.strip()).resolve()
 
 
-def resolve_ctrlex_root(script_dir: Path) -> Path:
-    env = os.environ.get("CTRLEX_ROOT")
+def resolve_xtrl_root(script_dir: Path) -> Path:
+    env = os.environ.get("XTRL_ROOT")
     if env:
         candidate = Path(os.path.expanduser(env)).resolve()
+        if (candidate / "tools").exists():
+            return candidate
+        raise SystemExit(
+            f"XTRL_ROOT is set to {candidate}, but {candidate / 'tools'} does not exist"
+        )
+    # keep CTRLEX_ROOT for transition compatibility
+    compat = os.environ.get("CTRLEX_ROOT")
+    if compat:
+        candidate = Path(os.path.expanduser(compat)).resolve()
         if (candidate / "tools").exists():
             return candidate
         raise SystemExit(
             f"CTRLEX_ROOT is set to {candidate}, but {candidate / 'tools'} does not exist"
         )
     codex_home = resolve_codex_home(None)
-    vendor = codex_home / "skills" / "vendor" / "ctrlex"
-    if (vendor / "tools").exists():
-        return vendor.resolve()
+    vendor_xtrl = codex_home / "skills" / "vendor" / "xtrl"
+    if (vendor_xtrl / "tools").exists():
+        return vendor_xtrl.resolve()
+    vendor_ctrlex = codex_home / "skills" / "vendor" / "ctrlex"
+    if (vendor_ctrlex / "tools").exists():
+        return vendor_ctrlex.resolve()
     if (script_dir / "tools").exists():
         return script_dir.resolve()
     raise SystemExit(
-        "CTRLEX_ROOT is not set and the default ($CODEX_HOME/skills/vendor/ctrlex) "
-        "does not exist. Set CTRLEX_ROOT to your ctrlex checkout."
+        "XTRL_ROOT is not set and the default ($CODEX_HOME/skills/vendor/xtrl or .../ctrlex) "
+        "does not exist. Set XTRL_ROOT to your xtrl checkout."
     )
 
 
@@ -93,8 +108,8 @@ def command_common_args(parser: argparse.ArgumentParser) -> None:
 def handle_preflight(args: argparse.Namespace, script_dir: Path) -> None:
     repo_root = resolve_repo_root(args.repo_root)
     codex_home = resolve_codex_home(args.codex_home)
-    ctrlex_root = resolve_ctrlex_root(script_dir)
-    script = ctrlex_root / "tools" / "root_preflight.py"
+    xtrl_root = resolve_xtrl_root(script_dir)
+    script = xtrl_root / "tools" / "root_preflight.py"
     run_script(
         script,
         ["--repo-root", str(repo_root), "--codex-home", str(codex_home)],
@@ -104,8 +119,8 @@ def handle_preflight(args: argparse.Namespace, script_dir: Path) -> None:
 def handle_enter_work(args: argparse.Namespace, script_dir: Path) -> None:
     repo_root = resolve_repo_root(args.repo_root)
     codex_home = resolve_codex_home(args.codex_home)
-    ctrlex_root = resolve_ctrlex_root(script_dir)
-    script = ctrlex_root / "tools" / "g0_enter_work.py"
+    xtrl_root = resolve_xtrl_root(script_dir)
+    script = xtrl_root / "tools" / "g0_enter_work.py"
     run_script(
         script,
         ["--repo-root", str(repo_root), "--codex-home", str(codex_home), args.contract],
@@ -115,8 +130,8 @@ def handle_enter_work(args: argparse.Namespace, script_dir: Path) -> None:
 def handle_run_packet(args: argparse.Namespace, script_dir: Path) -> None:
     repo_root = resolve_repo_root(args.repo_root)
     codex_home = resolve_codex_home(args.codex_home)
-    ctrlex_root = resolve_ctrlex_root(script_dir)
-    script = ctrlex_root / "tools" / "run_packet.py"
+    xtrl_root = resolve_xtrl_root(script_dir)
+    script = xtrl_root / "tools" / "run_packet.py"
     run_script(
         script,
         ["--repo-root", str(repo_root), "--codex-home", str(codex_home), args.contract],
@@ -126,8 +141,8 @@ def handle_run_packet(args: argparse.Namespace, script_dir: Path) -> None:
 def handle_collect_evidence(args: argparse.Namespace, script_dir: Path) -> None:
     repo_root = resolve_repo_root(args.repo_root)
     codex_home = resolve_codex_home(args.codex_home)
-    ctrlex_root = resolve_ctrlex_root(script_dir)
-    script = ctrlex_root / "tools" / "evidence" / "collect_packet_evidence.py"
+    xtrl_root = resolve_xtrl_root(script_dir)
+    script = xtrl_root / "tools" / "evidence" / "collect_packet_evidence.py"
     run_script(
         script,
         ["--repo-root", str(repo_root), "--codex-home", str(codex_home), args.contract],
@@ -183,7 +198,7 @@ def handle_just_render(args: argparse.Namespace) -> None:
     out_path = Path(os.path.expanduser(args.out)).resolve()
     out_path.parent.mkdir(parents=True, exist_ok=True)
     codex_home = resolve_codex_home(args.codex_home)
-    cli_path = (codex_home / "bin" / "ctrlex").resolve()
+    cli_path = (codex_home / "bin" / "xtrl").resolve()
     rendered = JUST_TEMPLATE.replace("{cli}", str(cli_path))
     out_path.write_text(rendered, encoding="utf-8")
     print(f"wrote Justfile → {out_path}")
@@ -196,13 +211,14 @@ def handle_just_install_mcp(args: argparse.Namespace) -> None:
         watch_dir.mkdir(parents=True, exist_ok=True)
     except PermissionError as exc:
         print(f"warning: could not create {watch_dir}: {exc}", file=sys.stderr)
-    ctrlex_root = resolve_ctrlex_root(Path(__file__).resolve().parent)
+    xtrl_root = resolve_xtrl_root(Path(__file__).resolve().parent)
     snippet = f"""[mcp_servers.{args.server_name}]
 command = "just-mcp"
 args = ["--watch-dir", "{watch_dir}:{args.watch_alias}"]
 env = {{
     "CODEX_HOME" = "{codex_home}",
-    "CTRLEX_ROOT" = "{ctrlex_root}"
+    "XTRL_ROOT" = "{xtrl_root}",
+    "CTRLEX_ROOT" = "{xtrl_root}"
 }}
 """
     print(snippet)
@@ -210,7 +226,7 @@ env = {{
 
 def main() -> None:
     script_dir = Path(__file__).resolve().parent
-    parser = argparse.ArgumentParser(prog="ctrlex")
+    parser = argparse.ArgumentParser(prog="xtrl")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     preflight = subparsers.add_parser("preflight")
@@ -257,12 +273,12 @@ def main() -> None:
     install.add_argument(
         "--watch-alias",
         help="Alias appended to tools (watch-dir:name).",
-        default="ctrlex",
+        default="xtrl",
     )
     install.add_argument(
         "--server-name",
         help="Name of the MCP server stanza.",
-        default="just_ctrlex",
+        default="just_xtrl",
     )
     install.set_defaults(func=lambda args: handle_just_install_mcp(args))
 

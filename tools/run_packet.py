@@ -8,7 +8,7 @@ Responsibilities:
 
 Notes:
 - stdlib only
-- evidence is written under the ctrlex state root (default: $CODEX_HOME/ctrlex/out/<packet_id>/)
+- evidence is written under the xtrl state root (default: $CODEX_HOME/xtrl/out/<packet_id>/)
 """
 
 from __future__ import annotations
@@ -350,7 +350,7 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
         help="Reuse existing worktree if G0 denies due to collision.",
     )
     ap.add_argument("--repo-root", help="Target repo root (defaults to git rev-parse).")
-    ap.add_argument("--codex-home", help="Override CODEX_HOME for the ctrlex state.")
+    ap.add_argument("--codex-home", help="Override CODEX_HOME for the xtrl state.")
     return ap.parse_args(argv[1:])
 
 

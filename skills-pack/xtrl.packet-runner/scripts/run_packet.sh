@@ -82,7 +82,20 @@ else
   fi
 fi
 
+XTRL_ROOT="${CODEX_HOME}/xtrl"
 CTRLEX_ROOT="${CODEX_HOME}/ctrlex"
-RUNNER="${CTRLEX_ROOT}/tools/run_packet.py"
+PLANT_ROOT="${CODEX_HOME}/plant-a"
+
+if [[ -d "$XTRL_ROOT" ]]; then
+  SKILL_ROOT="$XTRL_ROOT"
+elif [[ -d "$CTRLEX_ROOT" ]]; then
+  SKILL_ROOT="$CTRLEX_ROOT"
+elif [[ -d "$PLANT_ROOT" ]]; then
+  SKILL_ROOT="$PLANT_ROOT"
+else
+  SKILL_ROOT="$XTRL_ROOT"
+fi
+
+RUNNER="${SKILL_ROOT}/tools/run_packet.py"
 
 python "${RUNNER}" "${CONTRACT_PATH}" --repo-root "${REPO_ROOT}" --codex-home "${CODEX_HOME}" ${RESUME}

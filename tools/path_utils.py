@@ -29,13 +29,16 @@ def resolve_codex_home(codex_home: str | None) -> Path:
 
 def resolve_state_root(codex_home: str | None) -> Path:
     base = resolve_codex_home(codex_home)
+    xtrl_root = base / "xtrl"
     ctrlex_root = base / "ctrlex"
     plant_root = base / "plant-a"
+    if xtrl_root.exists():
+        return xtrl_root.resolve()
     if ctrlex_root.exists():
         return ctrlex_root.resolve()
     if plant_root.exists():
         return plant_root.resolve()
-    return ctrlex_root.resolve()
+    return xtrl_root.resolve()
 
 
 def resolve_repo_root(repo_root: str | None) -> Path:

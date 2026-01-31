@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+CODEX_HOME="${CODEX_HOME:-${XDG_CONFIG_HOME:-$HOME/.config}/codex}"
+XTRL_ROOT="${XTRL_ROOT:-$CODEX_HOME/skills/vendor/xtrl}"
+CTRLEX_ROOT="${CTRLEX_ROOT:-$CODEX_HOME/skills/vendor/ctrlex}"
+
+XTRL_CLI="$XTRL_ROOT/xtrl"
+CTRLEX_CLI="$CTRLEX_ROOT/ctrlex"
+
+if [ -x "$XTRL_CLI" ]; then
+  exec "$XTRL_CLI" "$@"
+fi
+
+if [ -x "$CTRLEX_CLI" ]; then
+  exec "$CTRLEX_CLI" "$@"
+fi
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+FALLBACK="$(cd "$SCRIPT_DIR/.." && pwd)/xtrl"
+if [ -x "$FALLBACK" ]; then
+  exec "$FALLBACK" "$@"
+fi
+
+printf 'ERROR: xtrl CLI not executable (checked %s, %s, %s)\n' "$XTRL_CLI" "$CTRLEX_CLI" "$FALLBACK" >&2
+exit 1

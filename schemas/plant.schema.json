@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://ctrlex.invalid/schemas/plant.schema.json",
-  "title": "Codex ctrlex Manifest",
+  "$id": "https://xtrl.invalid/schemas/plant.schema.json",
+  "title": "Codex xtrl Manifest",
   "type": "object",
   "additionalProperties": false,
   "required": [

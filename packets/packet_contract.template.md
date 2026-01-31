@@ -19,12 +19,12 @@ This document describes the packet contract. The single source of truth for gene
 - allowed_paths: ["*"]
 - forbidden_outputs: []
   - Use this list only for outputs that must not appear in git diffs or tracked files.
-  - Runtime directories under the ctrlex state root should be ignored via global gitignore if needed.
+  - Runtime directories under the xtrl state root should be ignored via global gitignore if needed.
 
 ## Worktree policy (required)
 - worktree_policy:
     mode: "strict" | "allow_dirty_allowlist"
-    worktree_root: "$CODEX_HOME/ctrlex/worktrees"
+    worktree_root: "$CODEX_HOME/xtrl/worktrees"
     deny_if_worktree_exists: true
     allow_dirty_globs: []          # used only when mode=allow_dirty_allowlist
     allow_untracked_globs: []      # used only when mode=allow_dirty_allowlist
@@ -49,5 +49,5 @@ This document describes the packet contract. The single source of truth for gene
 
 ## Evidence (required)
 - evidence:
-    out_dir: "$CODEX_HOME/ctrlex/out"         # evidence is written under .../out/<packet_id>/
+    out_dir: "$CODEX_HOME/xtrl/out"         # evidence is written under .../out/<packet_id>/
     include_git_diff_patch: false

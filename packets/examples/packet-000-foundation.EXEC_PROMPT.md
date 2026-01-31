@@ -3,13 +3,13 @@
 ```json
 {
   "schema_version": "1.0.0",
-  "contract_path": "$CODEX_HOME/ctrlex/packets/examples/packet-000-foundation.json",
-  "worktree_root": "$CODEX_HOME/ctrlex/worktrees/packet-000-foundation/",
+  "contract_path": "$CODEX_HOME/xtrl/packets/examples/packet-000-foundation.json",
+  "worktree_root": "$CODEX_HOME/xtrl/worktrees/packet-000-foundation/",
   "tasks": [
     "Validate the packet runner end-to-end using this contract."
   ],
   "acceptance_checks": [
-    "python $CODEX_HOME/ctrlex/tools/run_packet.py packets/examples/packet-000-foundation.json --repo-root /path/to/target"
+    "python $CODEX_HOME/xtrl/tools/run_packet.py packets/examples/packet-000-foundation.json --repo-root /path/to/target"
   ],
   "evidence": [
     "summary.md",
@@ -22,9 +22,9 @@
 1) Validate the packet runner end-to-end using this contract.
 
 ## Acceptance checks
-- `python $CODEX_HOME/ctrlex/tools/run_packet.py packets/examples/packet-000-foundation.json --repo-root /path/to/target`
+- `python $CODEX_HOME/xtrl/tools/run_packet.py packets/examples/packet-000-foundation.json --repo-root /path/to/target`
 
 ## Evidence
-Required artifacts under `$CODEX_HOME/ctrlex/out/packet-000-foundation/`:
+Required artifacts under `$CODEX_HOME/xtrl/out/packet-000-foundation/`:
 - `summary.md`
 - `raw/diffstat.txt`
