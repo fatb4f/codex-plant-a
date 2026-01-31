@@ -48,3 +48,5 @@ ctrlex collect-evidence --repo-root /path/to/repo packets/examples/<packet>.json
 ```
 
 Use `ctrlex just render --out $CODEX_HOME/Justfile` to create the global Justfile watched by `just-mcp`, and `ctrlex just install-mcp` to print the MCP stanza that runs `just-mcp --watch-dir "$CODEX_HOME/ctrlex:ctrlex"`.
+
+Install the bundled wrapper at `$CODEX_HOME/bin/ctrlex` (see `dot_config/codex/bin/ctrlex`) so both the exported Justfile and the MCP server call a stable executable path instead of depending on `PATH`.

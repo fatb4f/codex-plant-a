@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+CODEX_HOME="${CODEX_HOME:-${XDG_CONFIG_HOME:-$HOME/.config}/codex}"
+CTRLEX_ROOT="${CTRLEX_ROOT:-$CODEX_HOME/skills/vendor/ctrlex}"
+
+CTRLEX_CLI="$CTRLEX_ROOT/ctrlex"
+if [ ! -x "$CTRLEX_CLI" ]; then
+  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+  FALLBACK="$(cd "$SCRIPT_DIR/.." && pwd)/ctrlex"
+  if [ -x "$FALLBACK" ]; then
+    CTRLEX_CLI="$FALLBACK"
+  else
+    printf 'ERROR: ctrlex CLI not executable at %s\n' "$CTRLEX_CLI" >&2
+    exit 1
+  fi
+fi
+
+exec "$CTRLEX_CLI" "$@"

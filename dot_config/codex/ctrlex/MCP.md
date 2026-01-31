@@ -21,11 +21,14 @@ ctrlex just install-mcp
 ```
 Copy the output into `~/.codex/config.toml` under `[mcp_servers.<name>]` so Codex can start the stdio server with `just-mcp`.
 
+## Wrapper CLI
+Install `$CODEX_HOME/bin/ctrlex` so the generated Justfile and MCP tools call a stable executable instead of relying on `PATH`. The wrapper ships in this repo under `dot_config/codex/bin/ctrlex` and simply proxies to the real ctrlex install (or your local checkout via `CTRLEX_ROOT`).
+
 ## Start the MCP server
 ```bash
 $CODEX_HOME/bin/ctrlex-just-mcp
 ```
-This watches `$CODEX_HOME/ctrlex` and exposes the ctrlex recipes as MCP tools named `just_<recipe>@ctrlex` (for example, `just_preflight@ctrlex`).
+This watches `$CODEX_HOME` (named `ctrlex`) so the rendered `$CODEX_HOME/Justfile` is discovered and the recipes appear as MCP tools named `just_<recipe>@ctrlex` (for example, `just_preflight@ctrlex`).
 
 ## Refresh available tools
 `just-mcp` exposes an `admin_sync` tool that forces a reload. Run:
