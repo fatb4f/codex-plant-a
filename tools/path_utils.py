@@ -28,7 +28,14 @@ def resolve_codex_home(codex_home: str | None) -> Path:
 
 
 def resolve_state_root(codex_home: str | None) -> Path:
-    return resolve_codex_home(codex_home) / "plant-a"
+    base = resolve_codex_home(codex_home)
+    ctrlex_root = base / "ctrlex"
+    plant_root = base / "plant-a"
+    if ctrlex_root.exists():
+        return ctrlex_root.resolve()
+    if plant_root.exists():
+        return plant_root.resolve()
+    return ctrlex_root.resolve()
 
 
 def resolve_repo_root(repo_root: str | None) -> Path:

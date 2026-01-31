@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Packet-002: Structured Post-Run Evidence Harness.
 
-Writes a uniform bundle to the Plant A state root (default):
-  $CODEX_HOME/plant-a/out/<packet_id>/
+Writes a uniform bundle to the ctrlex state root (default):
+  $CODEX_HOME/ctrlex/out/<packet_id>/
     evidence.json
     evidence.md
     manifest.json
@@ -153,7 +153,7 @@ def main() -> int:
     ap.add_argument("--contract", required=True)
     ap.add_argument("--meta")
     ap.add_argument("--repo-root", help="Target repo root (defaults to git rev-parse).")
-    ap.add_argument("--codex-home", help="Override CODEX_HOME for Plant A state.")
+    ap.add_argument("--codex-home", help="Override CODEX_HOME for the ctrlex state.")
     args = ap.parse_args()
 
     generated_at = utc_now()

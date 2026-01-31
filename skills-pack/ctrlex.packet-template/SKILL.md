@@ -1,6 +1,6 @@
 ---
-name: plant-a.packet-template
-description: Scaffold a packet contract and EXEC_PROMPT under the Plant A state root.
+name: ctrlex.packet-template
+description: Scaffold a packet contract and EXEC_PROMPT under the ctrlex state root.
 ---
 
 ## Purpose
@@ -22,4 +22,4 @@ Scaffold a new packet contract and EXEC_PROMPT from the SSOT templates:
 
 ## Notes
 This skill only scaffolds the contract and prompt.
-Use `plant-a.packet-runner` to execute a packet.
+Use `ctrlex.packet-runner` to execute a packet.

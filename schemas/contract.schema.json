@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://codex-plant-a.invalid/schemas/contract.schema.json",
-  "title": "Codex Plant A Packet Contract",
+  "$id": "https://ctrlex.invalid/schemas/contract.schema.json",
+  "title": "Codex ctrlex Packet Contract",
   "type": "object",
   "additionalProperties": false,
   "required": [

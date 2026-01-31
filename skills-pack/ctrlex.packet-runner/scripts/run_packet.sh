@@ -82,7 +82,7 @@ else
   fi
 fi
 
-PLANT_ROOT="${CODEX_HOME}/plant-a"
-RUNNER="${PLANT_ROOT}/tools/run_packet.py"
+CTRLEX_ROOT="${CODEX_HOME}/ctrlex"
+RUNNER="${CTRLEX_ROOT}/tools/run_packet.py"
 
 python "${RUNNER}" "${CONTRACT_PATH}" --repo-root "${REPO_ROOT}" --codex-home "${CODEX_HOME}" ${RESUME}

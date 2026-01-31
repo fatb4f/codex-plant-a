@@ -1,5 +1,5 @@
 ---
-name: plant-a.packet-runner
+name: ctrlex.packet-runner
 description: Run a packet contract against a target repo with clean-worktree gates and Packet-002 evidence.
 ---
 
@@ -19,7 +19,7 @@ Execute a packet contract with:
 - Optional: `--repo-root`, `--codex-home`, `--resume`
 
 ## Outputs
-Evidence bundles are written under the Plant A state root:
+Evidence bundles are written under the ctrlex state root:
 - `out/<packet_id>/...`
 
 ## Notes

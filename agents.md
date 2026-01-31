@@ -1,23 +1,23 @@
-# Agents Runbook (Plant A)
+# Agents Runbook (ctrlex)
 
-This file defines the instruction set for operating Codex Plant A when installed
+This file defines the instruction set for operating Codex ctrlex when installed
 under the global Codex root (`CODEX_HOME`).
 
 ## Situational awareness
-- **Global install:** Plant A is installed under `$CODEX_HOME/plant-a/`.
+- **Global install:** ctrlex is installed under `$CODEX_HOME/ctrlex/` (Plant A is an alias for transition).
 - **Target-aware:** All execution operates on an explicit target repo.
-- **No repo-local roots:** Plant A must not create or depend on `./.codex/` or `./.quint/`.
+- **No repo-local roots:** ctrlex must not create or depend on `./.codex/` or `./.quint/`.
 
 ## Directory structure (global)
-- `$CODEX_HOME/plant-a/README.md` - repository purpose and entry points
-- `$CODEX_HOME/plant-a/plant.manifest.json` - structural manifest for drift prevention
-- `$CODEX_HOME/plant-a/schemas/` - JSON schemas for contracts and the manifest
-- `$CODEX_HOME/plant-a/packets/` - packet templates and example packets
-- `$CODEX_HOME/plant-a/tools/` - execution tools (preflight, worktree, evidence)
-- `$CODEX_HOME/plant-a/out/<packet_id>/` - evidence bundles
-- `$CODEX_HOME/plant-a/worktrees/<packet_id>/` - isolated worktrees (WORK zone)
-- `$CODEX_HOME/skills/plant-a.packet-template/` - packet scaffolding skill
-- `$CODEX_HOME/skills/plant-a.packet-runner/` - packet runner skill
+- `$CODEX_HOME/ctrlex/README.md` - repository purpose and entry points
+- `$CODEX_HOME/ctrlex/plant.manifest.json` - structural manifest for drift prevention
+- `$CODEX_HOME/ctrlex/schemas/` - JSON schemas for contracts and the manifest
+- `$CODEX_HOME/ctrlex/packets/` - packet templates and example packets
+- `$CODEX_HOME/ctrlex/tools/` - execution tools (preflight, worktree, evidence)
+- `$CODEX_HOME/ctrlex/out/<packet_id>/` - evidence bundles
+- `$CODEX_HOME/ctrlex/worktrees/<packet_id>/` - isolated worktrees (WORK zone)
+- `$CODEX_HOME/skills/ctrlex.packet-template/` - packet scaffolding skill
+- `$CODEX_HOME/skills/ctrlex.packet-runner/` - packet runner skill
 
 ## Packet contract template
 Use the canonical template files:
@@ -48,6 +48,10 @@ Legacy flat packets are deprecated and should be avoided for new work.
 They may still exist under `packets/examples/<packet_id>.json`.
 If using a flat contract, store the corresponding prompt as:
 - `packets/examples/<packet_id>.EXEC_PROMPT.md`
+
+## Transition alias notes
+- A compatibility alias may expose `$CODEX_HOME/plant-a/` as a symlink to `$CODEX_HOME/ctrlex/` during the transition window.
+- CLI consumers can keep using `plant-a` for now if an alias script forwards to `ctrlex`.
 
 ## Execution DAG (packet crafting)
 See `packets/EXECUTION_DAG.md` for the end-to-end DAG that covers packet

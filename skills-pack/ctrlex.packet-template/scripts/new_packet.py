@@ -35,8 +35,8 @@ def resolve_codex_home(codex_home: str | None) -> pathlib.Path:
     return (base / "codex").resolve()
 
 
-def plant_root(codex_home: str | None) -> pathlib.Path:
-    return resolve_codex_home(codex_home) / "plant-a"
+def ctrlex_root(codex_home: str | None) -> pathlib.Path:
+    return resolve_codex_home(codex_home) / "ctrlex"
 
 
 def load_prompt_validator(root: pathlib.Path):
@@ -114,7 +114,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--layout", choices=["dir", "flat"], default="dir", help="packet layout")
     parser.add_argument("--examples", action="store_true", help="write under packets/examples/")
     parser.add_argument("--validate-prompt", action="store_true", help="validate EXEC_PROMPT metadata")
-    parser.add_argument("--codex-home", help="Override CODEX_HOME for Plant A state.")
+    parser.add_argument("--codex-home", help="Override CODEX_HOME for the ctrlex state.")
     return parser.parse_args(argv[1:])
 
 
@@ -139,7 +139,7 @@ def main(argv: list[str]) -> int:
         "branch": args.branch or defaults["branch"],
     }
 
-    root = plant_root(args.codex_home)
+    root = ctrlex_root(args.codex_home)
     state_root = root
     template = load_template(template_path(root, args.template))
     contract = build_contract(template, mapping)
@@ -150,14 +150,14 @@ def main(argv: list[str]) -> int:
         contract_path = base_dir / "contract.json"
         prompt_path = base_dir / "EXEC_PROMPT.md"
         contract_rel = (
-            f"$CODEX_HOME/plant-a/packets/"
+            f"$CODEX_HOME/ctrlex/packets/"
             f"{'examples' if args.examples else mapping['area']}/{packet_id}/contract.json"
         )
     else:
         base_dir = state_root / "packets" / "examples"
         contract_path = base_dir / f"{packet_id}.json"
         prompt_path = base_dir / f"{packet_id}.EXEC_PROMPT.md"
-        contract_rel = f"$CODEX_HOME/plant-a/packets/examples/{packet_id}.json"
+        contract_rel = f"$CODEX_HOME/ctrlex/packets/examples/{packet_id}.json"
 
     if contract_path.exists():
         die(f"already exists: {contract_path}")
@@ -173,7 +173,7 @@ def main(argv: list[str]) -> int:
             "packet_id": packet_id,
             "area": mapping["area"],
             "contract_path": contract_rel,
-            "worktree_root": f"$CODEX_HOME/plant-a/worktrees/{packet_id}/",
+            "worktree_root": f"$CODEX_HOME/ctrlex/worktrees/{packet_id}/",
         },
     )
     prompt_path.write_text(prompt_text, encoding="utf-8")

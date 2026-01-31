@@ -1,6 +1,6 @@
 # Packet Execution DAG
 
-This DAG is the canonical flow for crafting and executing packets in Plant A.
+This DAG is the canonical flow for crafting and executing packets in ctrlex.
 It is designed to be complete enough for packet-driven ops without extra
 human-in-the-loop instructions.
 
@@ -23,10 +23,10 @@ human-in-the-loop instructions.
 ## Nodes
 - **Author Packet**: Create or update the contract and execution prompt.
 - **S0 Root Preflight**: Validate base invariants (clean root unless contract allows).
-- **G0 Enter WORK**: Provision/validate `$CODEX_HOME/plant-a/worktrees/<packet_id>/`.
+- **G0 Enter WORK**: Provision/validate `$CODEX_HOME/ctrlex/worktrees/<packet_id>/`.
 - **S1 Execute in WORK**: Run tasks strictly within the worktree and contract bounds.
-- **S2 Evidence**: Emit required evidence under `$CODEX_HOME/plant-a/out/<packet_id>/`.
-- **PROMOTE**: Repo-specific integration gate outside Plant A.
+- **S2 Evidence**: Emit required evidence under `$CODEX_HOME/ctrlex/out/<packet_id>/`.
+- **PROMOTE**: Repo-specific integration gate outside ctrlex.
 
 ## Tools
 - S0: `tools/root_preflight.py`
