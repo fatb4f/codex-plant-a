@@ -55,6 +55,9 @@ Use `xtrl just render --out $CODEX_HOME/Justfile` to create the global Justfile
 watched by `just-mcp`, and `xtrl just install-mcp` to print the MCP stanza that
 runs `just-mcp --watch-dir "$CODEX_HOME:xtrl"`.
 
+The launcher at `$CODEX_HOME/bin/xtrl-just-mcp` already watches `$CODEX_HOME`
+(alias `xtrl`), so MCP tools are published as `just_<recipe>@xtrl`.
+
 Install the bundled wrapper at `$CODEX_HOME/bin/xtrl` (see
 `dot_config/codex/bin/xtrl`) so both the exported Justfile and the MCP server call
 a stable executable path instead of depending on `PATH`. Start the just-mcp
